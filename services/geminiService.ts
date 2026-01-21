@@ -11,13 +11,23 @@ declare const process: {
 
 const apiKey = process.env.API_KEY;
 
+// Debug logging to help troubleshoot Vercel deployment issues
+console.log("Oceanica AI Service Initializing...");
+if (!apiKey) {
+    console.error("CRITICAL: process.env.API_KEY is undefined in the browser. The build process failed to inject the key.");
+} else if (apiKey === "BUILD_TIME_DUMMY_KEY") {
+    console.warn("WARNING: Using dummy build-time key. Real API calls will fail.");
+} else {
+    console.log("SUCCESS: API Key appears to be configured.");
+}
+
 // Use a dummy key if apiKey is missing during build time to allow instantiation without crashing.
 // In production, the valid API_KEY must be provided via environment variables.
 const ai = new GoogleGenAI({ apiKey: apiKey || "BUILD_TIME_DUMMY_KEY" });
 
 export const askOceanQuestion = async (prompt: string): Promise<{ text: string, sources: GroundingChunk[] }> => {
   if (!apiKey || apiKey === "BUILD_TIME_DUMMY_KEY") {
-     const errorMsg = "API Key is missing. Please ensure API_KEY is set in your environment variables.";
+     const errorMsg = "API Key is missing. Please ensure API_KEY is set in your Vercel Project Settings.";
      console.error(errorMsg);
      throw new Error(errorMsg);
   }
@@ -51,7 +61,7 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
     console.error("Error calling Gemini API:", error);
     // Return a more user-friendly error message based on common issues
     if (error.message?.includes("API key")) {
-        throw new Error("Invalid API Key. Please check your configuration.");
+        throw new Error("Invalid API Key. Please check your configuration in Vercel.");
     } else if (error.message?.includes("429")) {
         throw new Error("I'm overwhelmed with questions right now. Please try again in a moment.");
     }
