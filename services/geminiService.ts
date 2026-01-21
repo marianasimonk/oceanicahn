@@ -1,23 +1,28 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import type { ConservationFact, GroundingChunk } from '../types';
 
-const apiKey = process.env.API_KEY as string;
+// Ensure TypeScript recognizes process.env in the client-side context
+declare const process: {
+  env: {
+    API_KEY: string;
+  }
+};
 
-if (!apiKey) {
-  // We don't throw at top level to avoid build-time errors if the env var isn't present during build
-  console.warn("API_KEY environment variable not set");
-}
+const apiKey = process.env.API_KEY;
 
-// Use a dummy key if apiKey is missing during build time to allow instantiation
-const ai = new GoogleGenAI({ apiKey: apiKey || "DUMMY_KEY_FOR_BUILD" });
+// Use a dummy key if apiKey is missing during build time to allow instantiation without crashing.
+// In production, the valid API_KEY must be provided via environment variables.
+const ai = new GoogleGenAI({ apiKey: apiKey || "BUILD_TIME_DUMMY_KEY" });
 
 export const askOceanQuestion = async (prompt: string): Promise<{ text: string, sources: GroundingChunk[] }> => {
-  if (!apiKey) throw new Error("API Key not found");
+  if (!apiKey || apiKey === "BUILD_TIME_DUMMY_KEY") {
+     console.error("API Key is missing. Please ensure API_KEY is set in your environment variables.");
+     throw new Error("API Key not found");
+  }
   
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: `You are a marine biologist and oceanographer named Oceanica. Answer the following question about the ocean in an engaging and informative way. Question: "${prompt}"`,
       config: {
         tools: [{ googleSearch: {} }],
@@ -43,11 +48,14 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
 };
 
 export const getOceanFacts = async (): Promise<ConservationFact[]> => {
-  if (!apiKey) return [];
+  if (!apiKey || apiKey === "BUILD_TIME_DUMMY_KEY") {
+      console.warn("API Key missing, returning fallback facts.");
+      return getFallbackFacts();
+  }
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: "Provide 6 important facts about ocean conservation and preservation. For each fact, provide a topic and a detailed explanation.",
       config: {
         responseMimeType: "application/json",
@@ -80,20 +88,12 @@ export const getOceanFacts = async (): Promise<ConservationFact[]> => {
     
   } catch (error) {
     console.error("Error fetching ocean facts from Gemini API:", error);
-    // Provide fallback facts if the API fails
-    return [
-      { topic: "Plastic Pollution", fact: "Over 8 million tons of plastic enter the oceans each year, harming marine life and ecosystems. It's estimated that by 2050, there could be more plastic than fish in the ocean by weight." },
-      { topic: "Overfishing", fact: "More than a third of the world's fish stocks are being fished at biologically unsustainable levels, threatening marine biodiversity and the livelihoods of millions of people." },
-      { topic: "Coral Bleaching", fact: "Rising ocean temperatures due to climate change are causing widespread coral bleaching, where corals expel the algae living in their tissues, turning them white and vulnerable to disease and death." },
-      { topic: "Ocean Acidification", fact: "The ocean absorbs about 30% of the CO2 released into the atmosphere, leading to increased acidity. This harms organisms like corals and shellfish by hindering their ability to build shells and skeletons." },
-      { topic: "Marine Protected Areas (MPAs)", fact: "MPAs are crucial for conservation. They are designated areas where human activities are restricted to protect nature. Currently, only about 8% of the world's ocean is protected." },
-      { topic: "Sustainable Seafood", fact: "Consumers can help protect the ocean by choosing sustainably sourced seafood. Look for certifications from groups like the Marine Stewardship Council (MSC) to make an informed choice." }
-    ];
+    return getFallbackFacts();
   }
 };
 
 export const generateOceanImage = async (prompt: string): Promise<string> => {
-  if (!apiKey) throw new Error("API Key not found");
+  if (!apiKey || apiKey === "BUILD_TIME_DUMMY_KEY") throw new Error("API Key not found");
 
   try {
     const response = await ai.models.generateContent({
@@ -120,4 +120,15 @@ export const generateOceanImage = async (prompt: string): Promise<string> => {
     console.error("Error calling Gemini Image API:", error);
     throw new Error("Failed to generate an image from the AI ocean's depths.");
   }
+};
+
+const getFallbackFacts = (): ConservationFact[] => {
+    return [
+      { topic: "Plastic Pollution", fact: "Over 8 million tons of plastic enter the oceans each year, harming marine life and ecosystems. It's estimated that by 2050, there could be more plastic than fish in the ocean by weight." },
+      { topic: "Overfishing", fact: "More than a third of the world's fish stocks are being fished at biologically unsustainable levels, threatening marine biodiversity and the livelihoods of millions of people." },
+      { topic: "Coral Bleaching", fact: "Rising ocean temperatures due to climate change are causing widespread coral bleaching, where corals expel the algae living in their tissues, turning them white and vulnerable to disease and death." },
+      { topic: "Ocean Acidification", fact: "The ocean absorbs about 30% of the CO2 released into the atmosphere, leading to increased acidity. This harms organisms like corals and shellfish by hindering their ability to build shells and skeletons." },
+      { topic: "Marine Protected Areas (MPAs)", fact: "MPAs are crucial for conservation. They are designated areas where human activities are restricted to protect nature. Currently, only about 8% of the world's ocean is protected." },
+      { topic: "Sustainable Seafood", fact: "Consumers can help protect the ocean by choosing sustainably sourced seafood. Look for certifications from groups like the Marine Stewardship Council (MSC) to make an informed choice." }
+    ];
 };
