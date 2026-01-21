@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import type { ConservationFact, GroundingChunk } from '../types';
 
@@ -16,10 +17,13 @@ const ai = new GoogleGenAI({ apiKey: apiKey || "BUILD_TIME_DUMMY_KEY" });
 
 export const askOceanQuestion = async (prompt: string): Promise<{ text: string, sources: GroundingChunk[] }> => {
   if (!apiKey || apiKey === "BUILD_TIME_DUMMY_KEY") {
-     console.error("API Key is missing. Please ensure API_KEY is set in your environment variables.");
-     throw new Error("API Key not found");
+     const errorMsg = "API Key is missing. Please ensure API_KEY is set in your environment variables.";
+     console.error(errorMsg);
+     throw new Error(errorMsg);
   }
   
+  console.log("Oceanica AI: Sending request to Gemini 3 Flash Preview...");
+
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -29,6 +33,8 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
       },
     });
     
+    console.log("Oceanica AI: Response received.");
+
     const text = response.text || "I couldn't find an answer to that question in the ocean's depths.";
     
     // Extract grounding chunks safely
@@ -41,9 +47,15 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
 
     return { text, sources };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error calling Gemini API:", error);
-    throw new Error("Failed to get a response from the depths of the AI ocean.");
+    // Return a more user-friendly error message based on common issues
+    if (error.message?.includes("API key")) {
+        throw new Error("Invalid API Key. Please check your configuration.");
+    } else if (error.message?.includes("429")) {
+        throw new Error("I'm overwhelmed with questions right now. Please try again in a moment.");
+    }
+    throw new Error(error.message || "Failed to get a response from the depths of the AI ocean.");
   }
 };
 
