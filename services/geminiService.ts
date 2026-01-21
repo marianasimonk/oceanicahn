@@ -18,9 +18,10 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
       },
     });
     
-    const text = response.text;
+    const text = response.text || "I couldn't find an answer to that question in the ocean's depths.";
     const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-    const sources = groundingMetadata?.groundingChunks || [];
+    // Cast to unknown first to avoid strict type mismatch if SDK types differ slightly from local interface
+    const sources = (groundingMetadata?.groundingChunks || []) as unknown as GroundingChunk[];
 
     return { text, sources };
 
@@ -57,7 +58,10 @@ export const getOceanFacts = async (): Promise<ConservationFact[]> => {
       },
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim();
+    if (!jsonText) {
+        throw new Error("No text returned from API");
+    }
     const facts = JSON.parse(jsonText);
     return facts as ConservationFact[];
     
