@@ -2,13 +2,19 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import type { ConservationFact, GroundingChunk } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+const apiKey = process.env.API_KEY as string;
+
+if (!apiKey) {
+  // We don't throw at top level to avoid build-time errors if the env var isn't present during build
+  console.warn("API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Use a dummy key if apiKey is missing during build time to allow instantiation
+const ai = new GoogleGenAI({ apiKey: apiKey || "DUMMY_KEY_FOR_BUILD" });
 
 export const askOceanQuestion = async (prompt: string): Promise<{ text: string, sources: GroundingChunk[] }> => {
+  if (!apiKey) throw new Error("API Key not found");
+  
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -19,9 +25,14 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
     });
     
     const text = response.text || "I couldn't find an answer to that question in the ocean's depths.";
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-    // Cast to unknown first to avoid strict type mismatch if SDK types differ slightly from local interface
-    const sources = (groundingMetadata?.groundingChunks || []) as unknown as GroundingChunk[];
+    
+    // Extract grounding chunks safely
+    const candidate = response.candidates?.[0];
+    const groundingMetadata = candidate?.groundingMetadata;
+    const rawChunks = groundingMetadata?.groundingChunks;
+    
+    // Cast to unknown then to our local type to satisfy TypeScript
+    const sources = (rawChunks || []) as unknown as GroundingChunk[];
 
     return { text, sources };
 
@@ -32,6 +43,8 @@ export const askOceanQuestion = async (prompt: string): Promise<{ text: string, 
 };
 
 export const getOceanFacts = async (): Promise<ConservationFact[]> => {
+  if (!apiKey) return [];
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -80,6 +93,8 @@ export const getOceanFacts = async (): Promise<ConservationFact[]> => {
 };
 
 export const generateOceanImage = async (prompt: string): Promise<string> => {
+  if (!apiKey) throw new Error("API Key not found");
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

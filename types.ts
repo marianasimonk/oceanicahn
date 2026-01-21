@@ -5,7 +5,7 @@ export enum MessageAuthor {
 }
 
 export interface GroundingChunk {
-  // FIX: The 'web' property is optional in the GroundingChunk type from @google/genai. This change makes the local type compatible.
+  // Matches the structure from @google/genai search grounding response
   web?: {
     uri?: string;
     title?: string;
