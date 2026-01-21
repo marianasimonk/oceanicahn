@@ -49,7 +49,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setPage }) => {
               <h3 className="text-4xl font-bold text-cyan-300 mb-4">Ocean Heat & Bleaching Risk</h3>
               <p className="max-w-3xl mx-auto text-slate-400">
                 Heat is the #1 killer of coral reefs. This live map shows **Sea Surface Temperature (SST)**. 
-                Areas in <span className="text-red-400 font-bold">deep red or purple (>30°C)</span> represent reefs currently "affected" by heat stress and at high risk of bleaching.
+                Areas in <span className="text-red-400 font-bold">deep red or purple (&gt;30&deg;C)</span> represent reefs currently "affected" by heat stress and at high risk of bleaching.
               </p>
             </div>
 

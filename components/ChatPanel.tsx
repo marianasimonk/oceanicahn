@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { askOceanQuestion } from '../services/geminiService';
 import type { ChatMessage, GroundingChunk } from '../types';
@@ -20,7 +21,7 @@ const AIMessage: React.FC<{ text: string; sources?: GroundingChunk[] }> = ({ tex
               <h4 className="text-xs font-semibold text-slate-400 mb-2">Sources:</h4>
               <ul className="list-none p-0 m-0 space-y-2">
                 {sources.map((source, index) => (
-                  // FIX: Use optional chaining (`?.`) to safely access `source.web.uri`, as the `web` property on a GroundingChunk is optional.
+                  // Use optional chaining (`?.`) to safely access `source.web.uri`
                   source.web?.uri && (
                     <li key={index} className="flex items-start gap-2">
                       <GlobeIcon className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
